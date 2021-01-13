@@ -14,15 +14,18 @@
 # limitations under the License.
 import logging
 import re
+from typing import Optional
 
+from twisted.internet.interfaces import IReactorCore
 from zope.interface import implementer
+from urllib.parse import urlsplit
 
 from twisted.internet import defer
 from twisted.internet.endpoints import HostnameEndpoint, wrapClientTLS
 from twisted.python.failure import Failure
 from twisted.web.client import URI, BrowserLikePolicyForHTTPS, _AgentBase
 from twisted.web.error import SchemeNotSupported
-from twisted.web.iweb import IAgent
+from twisted.web.iweb import IAgent, IPolicyForHTTPS
 
 from synapse.http.connectproxyclient import HTTPConnectProxyEndpoint
 
@@ -85,11 +88,11 @@ class ProxyAgent(_AgentBase):
             self._endpoint_kwargs["bindAddress"] = bindAddress
 
         self.http_proxy_endpoint = _http_proxy_endpoint(
-            http_proxy, self.proxy_reactor, **self._endpoint_kwargs
+            http_proxy, self.proxy_reactor, contextFactory, **self._endpoint_kwargs
         )
 
         self.https_proxy_endpoint = _http_proxy_endpoint(
-            https_proxy, self.proxy_reactor, **self._endpoint_kwargs
+            https_proxy, self.proxy_reactor, contextFactory, **self._endpoint_kwargs
         )
 
         self._policy_for_https = contextFactory
@@ -179,12 +182,16 @@ class ProxyAgent(_AgentBase):
         )
 
 
-def _http_proxy_endpoint(proxy, reactor, **kwargs):
+def _http_proxy_endpoint(proxy: Optional[bytes],
+                        reactor: IReactorCore,
+                        tls_options_factory: Optional[IPolicyForHTTPS],
+                        **kwargs):
     """Parses an http proxy setting and returns an endpoint for the proxy
 
     Args:
         proxy (bytes|None):  the proxy setting
         reactor: reactor to be used to connect to the proxy
+        tls_options_factory: the TLS options to use when connecting through a https proxy
         kwargs: other args to be passed to HostnameEndpoint
 
     Returns:
@@ -194,24 +201,21 @@ def _http_proxy_endpoint(proxy, reactor, **kwargs):
     if proxy is None:
         return None
 
-    # currently we only support hostname:port. Some apps also support
-    # protocol://<host>[:port], which allows a way of requiring a TLS connection to the
-    # proxy.
+    parsed_url = urlsplit(proxy, scheme=b"http")
+    scheme = parsed_url.scheme
+    host = parsed_url.hostname
+    port = parsed_url.port
 
-    host, port = parse_host_port(proxy, default_port=1080)
-    return HostnameEndpoint(reactor, host, port, **kwargs)
+    if scheme not in (b'http', b'https'):
+        raise ValueError("Proxy scheme '%s' not supported", scheme)
 
+    if port is None:
+        port = 1080
 
-def parse_host_port(hostport, default_port=None):
-    # could have sworn we had one of these somewhere else...
-    if b":" in hostport:
-        host, port = hostport.rsplit(b":", 1)
-        try:
-            port = int(port)
-            return host, port
-        except ValueError:
-            # the thing after the : wasn't a valid port; presumably this is an
-            # IPv6 address.
-            pass
+    proxy_endpoint = HostnameEndpoint(reactor, host, port, **kwargs)
 
-    return hostport, default_port
+    if scheme == b'https':
+        tls_options = tls_options_factory.creatorForNetloc(host, port)
+        proxy_endpoint = wrapClientTLS(tls_options, proxy_endpoint)
+
+    return proxy_endpoint
