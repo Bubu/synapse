@@ -15,13 +15,13 @@
 import logging
 import re
 from typing import Optional
-
-from twisted.internet.interfaces import IReactorCore
-from zope.interface import implementer
 from urllib.parse import urlsplit
+
+from zope.interface import implementer
 
 from twisted.internet import defer
 from twisted.internet.endpoints import HostnameEndpoint, wrapClientTLS
+from twisted.internet.interfaces import IReactorCore
 from twisted.python.failure import Failure
 from twisted.web.client import URI, BrowserLikePolicyForHTTPS, _AgentBase
 from twisted.web.error import SchemeNotSupported
