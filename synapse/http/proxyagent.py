@@ -182,10 +182,12 @@ class ProxyAgent(_AgentBase):
         )
 
 
-def _http_proxy_endpoint(proxy: Optional[bytes],
-                        reactor: IReactorCore,
-                        tls_options_factory: Optional[IPolicyForHTTPS],
-                        **kwargs):
+def _http_proxy_endpoint(
+    proxy: Optional[bytes],
+    reactor: IReactorCore,
+    tls_options_factory: Optional[IPolicyForHTTPS],
+    **kwargs
+):
     """Parses an http proxy setting and returns an endpoint for the proxy
 
     Args:
@@ -206,7 +208,7 @@ def _http_proxy_endpoint(proxy: Optional[bytes],
     host = parsed_url.hostname
     port = parsed_url.port
 
-    if scheme not in (b'http', b'https'):
+    if scheme not in (b"http", b"https"):
         raise ValueError("Proxy scheme '%s' not supported", scheme)
 
     if port is None:
@@ -214,7 +216,7 @@ def _http_proxy_endpoint(proxy: Optional[bytes],
 
     proxy_endpoint = HostnameEndpoint(reactor, host, port, **kwargs)
 
-    if scheme == b'https':
+    if scheme == b"https":
         tls_options = tls_options_factory.creatorForNetloc(host, port)
         proxy_endpoint = wrapClientTLS(tls_options, proxy_endpoint)
 
