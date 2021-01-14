@@ -218,7 +218,7 @@ class MatrixFederationAgentTests(TestCase):
         agent = ProxyAgent(
             self.reactor,
             contextFactory=get_test_https_policy(),
-            https_proxy=b"proxy.com",
+            https_proxy=b"http://proxy.com",
         )
 
         self.reactor.lookups["proxy.com"] = "1.2.3.5"

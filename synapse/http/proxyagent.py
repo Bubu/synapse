@@ -15,7 +15,6 @@
 import logging
 import re
 from typing import Optional
-from urllib.parse import urlsplit
 
 from zope.interface import implementer
 
@@ -203,16 +202,11 @@ def _http_proxy_endpoint(
     if proxy is None:
         return None
 
-    parsed_url = urlsplit(proxy, scheme=b"http")
-    scheme = parsed_url.scheme
-    host = parsed_url.hostname
-    port = parsed_url.port
+    schemehost, port = parse_host_port(proxy, default_port=1080)
+    scheme, host = parse_scheme_host(schemehost, default_scheme=b"http")
 
     if scheme not in (b"http", b"https"):
         raise ValueError("Proxy scheme '%s' not supported", scheme)
-
-    if port is None:
-        port = 1080
 
     proxy_endpoint = HostnameEndpoint(reactor, host, port, **kwargs)
 
@@ -221,3 +215,24 @@ def _http_proxy_endpoint(
         proxy_endpoint = wrapClientTLS(tls_options, proxy_endpoint)
 
     return proxy_endpoint
+
+
+def parse_host_port(hostport, default_port=None):
+    # could have sworn we had one of these somewhere else...
+    if b":" in hostport:
+        host, port = hostport.rsplit(b":", 1)
+        try:
+            port = int(port)
+            return host, port
+        except ValueError:
+            # the thing after the : wasn't a valid port; presumably this is an
+            # IPv6 address.
+            pass
+    return hostport, default_port
+
+
+def parse_scheme_host(schemehost, default_scheme=None):
+    if b"://" in schemehost:
+        return schemehost.split(b"://", 1)
+    else:
+        return default_scheme, schemehost
