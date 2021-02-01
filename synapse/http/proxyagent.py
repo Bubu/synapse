@@ -14,7 +14,7 @@
 # limitations under the License.
 import logging
 import re
-from typing import Optional
+from typing import Optional, Tuple
 
 from zope.interface import implementer
 
@@ -25,6 +25,8 @@ from twisted.python.failure import Failure
 from twisted.web.client import URI, BrowserLikePolicyForHTTPS, _AgentBase
 from twisted.web.error import SchemeNotSupported
 from twisted.web.iweb import IAgent, IPolicyForHTTPS
+
+from urllib.parse import urlsplit
 
 from synapse.http.connectproxyclient import HTTPConnectProxyEndpoint
 
@@ -198,10 +200,13 @@ def _http_proxy_endpoint(
     Returns:
         interfaces.IStreamClientEndpoint|None: endpoint to use to connect to the proxy,
             or None
+
+    Raises: ValueError if given a proxy with a scheme we don't support.
     """
     if proxy is None:
         return None
 
+    # Note: we can't use urlsplit/urlparse as that is completely broken for things without a scheme://
     schemehost, port = parse_host_port(proxy, default_port=1080)
     scheme, host = parse_scheme_host(schemehost, default_scheme=b"http")
 
@@ -217,7 +222,7 @@ def _http_proxy_endpoint(
     return proxy_endpoint
 
 
-def parse_host_port(hostport, default_port=None):
+def parse_host_port(hostport: bytes, default_port: int = None) -> Tuple[bytes, int]:
     # could have sworn we had one of these somewhere else...
     if b":" in hostport:
         host, port = hostport.rsplit(b":", 1)
@@ -231,8 +236,10 @@ def parse_host_port(hostport, default_port=None):
     return hostport, default_port
 
 
-def parse_scheme_host(schemehost, default_scheme=None):
-    if b"://" in schemehost:
-        return schemehost.split(b"://", 1)
+def parse_scheme_host(uri: bytes, default_scheme: bytes = None) -> Tuple[bytes, bytes]:
+    """Extracts scheme and host from an URI, returns default_scheme if there's none in the URI"""
+    if b"://" in uri:
+        scheme, host = uri.split(b"://", 1)
+        return scheme, host
     else:
-        return default_scheme, schemehost
+        return default_scheme, uri

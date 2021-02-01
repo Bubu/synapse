@@ -178,6 +178,7 @@ class MatrixFederationAgentTests(TestCase):
         self.assertEqual(body, b"result")
 
     def test_http_request_via_proxy(self):
+        # keep the proxy without scheme here (defaults to http) for testing backwards compatibility
         agent = ProxyAgent(self.reactor, http_proxy=b"proxy.com:8888")
 
         self.reactor.lookups["proxy.com"] = "1.2.3.5"
