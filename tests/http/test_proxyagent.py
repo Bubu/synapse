@@ -442,7 +442,9 @@ class MatrixFederationAgentTests(TestCase):
 
         # make a test server, and wire up the client
         http_server = self._make_connection(
-            client_factory, _get_test_protocol_factory(), ssl=True,
+            client_factory,
+            _get_test_protocol_factory(),
+            ssl=True,
             expected_sni=b"proxy.com",
         )
 
@@ -484,7 +486,9 @@ class MatrixFederationAgentTests(TestCase):
 
         # make a test HTTP server, and wire up the client
         proxy_server = self._make_connection(
-            client_factory, _get_test_protocol_factory(), ssl=True,
+            client_factory,
+            _get_test_protocol_factory(),
+            ssl=True,
             expected_sni=b"proxy.com",
         )
 

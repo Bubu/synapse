@@ -26,8 +26,6 @@ from twisted.web.client import URI, BrowserLikePolicyForHTTPS, _AgentBase
 from twisted.web.error import SchemeNotSupported
 from twisted.web.iweb import IAgent, IPolicyForHTTPS
 
-from urllib.parse import urlsplit
-
 from synapse.http.connectproxyclient import HTTPConnectProxyEndpoint
 
 logger = logging.getLogger(__name__)
