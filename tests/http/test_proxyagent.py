@@ -423,6 +423,10 @@ class MatrixFederationAgentTests(TestCase):
         body = self.successResultOf(treq.content(resp))
         self.assertEqual(body, b"result")
 
+    def test_proxy_with_unsupported_scheme(self):
+        with self.assertRaises(ValueError):
+            agent = ProxyAgent(self.reactor, http_proxy=b"socks://proxy.com:8888")
+
     def test_http_request_via_https_proxy(self):
         agent = ProxyAgent(self.reactor, http_proxy=b"https://proxy.com:8888")
 
